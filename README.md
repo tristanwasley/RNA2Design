@@ -23,6 +23,7 @@ Potential Areas of Improvement:
   3. ) Add more graphics to the drawing function.
   4. ) Decrease the amount of clicks one needs to do to make a structure.
   5. ) Ability to add "reactive" sites to specific parts of the RNA structure.
+  
       a. ) i.e. Hammerhead Ribozyme, RNA logic circuit
   6. ) 
   
