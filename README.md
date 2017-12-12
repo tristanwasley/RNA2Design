@@ -6,7 +6,11 @@ platform with-in which Bioengineers can design biologically-sound RNA secondary 
 what shape or functionality they need.
 
 To run RNA2Design, either:
-    1. ) Clone the repository and run drawdiag.java from an IDE like IntelliJ, or
+
+    1. ) Clone the repository and run drawdiag.java from an IDE like IntelliJ.
+    
+    or,
+    
     2. ) Locate the RNA2Design.jar inside of the file labelled "out."
           a. ) Download to a convenient location on your computer and double click the file to run it.
   *Instructions on how to draw structures are provided in program.
@@ -24,5 +28,7 @@ Potential Areas of Improvement:
   
   
 Credits:
-Tristan Wasley
-VARNA v3.93 - All classes relating specifically to the running of the Nussinov algorithm.
+
+ Tristan Wasley
+
+ VARNA v3.93 - All classes relating specifically to the running of the Nussinov algorithm.
