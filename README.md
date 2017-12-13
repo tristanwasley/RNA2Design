@@ -16,17 +16,28 @@ To run RNA2Design, either:
     2. ) Locate the RNA2Design.jar inside of the file labelled "out".
           a. ) Download to a convenient location on your computer and double click the file to run it.
                 *Instructions on how to draw structures are provided in program.
+                
+Instructions:
+
+    1. ) Start by clicking around in the graph, using the commands listed below.
+    2. ) After finishing your structure and making sure you've made all the bonds you want, click the Predict
+          button.
+    3. ) Given your structure had no pseudoknots, the program will output an initial sequence with a dot-Bracket 
+          sequence as well. You may click this again to test a slightly different configuration via chemical intuition
+          and random numbers.
+    4. ) Proceeding to the next stage, click the "Optimize" button next. Currently, this may pause the program then do 
+          nothing. At this point, you can either repeat clicking "Optimize" and waiting for it to give a good sequence, or 
+          repeat the process from step 2. ), no need to clear the graph and remake the structure.
     
 
 Potential Areas of Improvement:
 
-    1. ) Only handles small RNA structures at the moment.
-    2. ) Find a better-coded Nussinov algorithm to handle prediction of a sequence's structure.
-    3. ) Add more graphics to the drawing function.
-    4. ) Decrease the amount of clicks one needs to do to make a structure.
-    5. ) Ability to add "reactive" sites to specific parts of the RNA structure.
+    1. ) Integrate an algorithm like Zuker's to handle prediction of a sequence's structure via kinetics.
+    2. ) Add more graphics to the drawing function.
+    3. ) Decrease the amount of clicks one needs to do to make a structure.
+    4. ) Ability to add "reactive" sites to specific parts of the RNA structure.
       a. ) i.e. Hammerhead Ribozyme, RNA logic circuit
-    6. ) 
+    5. ) 
   
   
 Credits:
