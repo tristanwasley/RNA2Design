@@ -356,18 +356,31 @@ public class RNA2DesignGUI extends JDialog {
         }
     }
 
+    // My way of sampling a lot of possible RNA sequences in a short amount of time.
+    // Depending on whether the node chosen from the structure is paired with another, or is part of a loop,
+    // mutate it to another base that is likely to be in that location.
+    // (i.e. mainly A's and U's in loops and "G's and C's in stems --- could get more complicated with addition of
+    // binding sites, larger sequences, interactions between RNAs.)
     private void mutate() {
         ArrayList<Integer> nonbonds = new ArrayList<>();
         ArrayList<Integer> bonds = new ArrayList<>();
+
+        // Not exactly deterministic, but necessary to save time when deriving a sequence from a structure.
         Random r = new Random();
 
+        // The nucleotide letter to be swapped with where the current one is.
         String nucRepl = "";
+
+        // These are the same thing, int is the current nucleotide slot in the sequence, and curNuc is the letter.
         int nucToChange = 0;
         String curNuc = "";
 
+        // These relate to changing the paired nucleotide in the sequence too.
         String secNucRepl = "";
         int secNuc = 0;
 
+
+        // Sort all of the nodes into whether or not they have a bond with another nucleotide, or just a backbone.
         Iterator<GraphicNode> g = RNAMouseManager.graph.getNodeIterator();
         while (g.hasNext()) {
             GraphicNode n = g.next();
@@ -377,9 +390,17 @@ public class RNA2DesignGUI extends JDialog {
                 bonds.add(Integer.parseInt(n.getId()));
             }
         }
-        if (r.nextInt(2) == 0) {
+
+        // Make a choice between changing a loop and changing a stem.
+
+        // Choose to change a stem.
+        if (r.nextInt(100) < 66) {
+
+            // locate the current nucleotide and its location in the sequence.
             nucToChange = bonds.get(r.nextInt(bonds.size()));
             curNuc = rna.substring(nucToChange, nucToChange + 1);
+
+            // Figured out the bonded nucleotide by the labelling of the edge that goes from the current node to it.
             if (b_edge.toString().split("_")[1].equals(nucToChange + "")) {
                 secNuc = Integer.parseInt(b_edge.toString().split("_")[2]);
 
@@ -387,6 +408,7 @@ public class RNA2DesignGUI extends JDialog {
                 secNuc = Integer.parseInt(b_edge.toString().split("_")[1]);
             }
 
+            // Gets the replacement for the other nucleotide.
             if (curNuc.equals("G")) {
                 nucRepl = "C";
                 secNucRepl = "G";
@@ -395,15 +417,24 @@ public class RNA2DesignGUI extends JDialog {
                 nucRepl = "G";
                 secNucRepl = "C";
             }
+
+            // Determines where to place the two nucleotides in the sequence based off of locations in the sequence.
             if (nucToChange < secNuc) {
-                rna = rna.substring(0, nucToChange) + nucRepl + rna.substring(nucToChange + 1, secNuc) + secNucRepl + rna.substring(secNuc + 1);
+                rna = rna.substring(0, nucToChange) + nucRepl + rna.substring(nucToChange + 1, secNuc) + secNucRepl
+                        + rna.substring(secNuc + 1);
             } else {
-                rna = rna.substring(0, secNuc) + secNucRepl + rna.substring(secNuc + 1, nucToChange) + nucRepl + rna.substring(nucToChange + 1);
+                rna = rna.substring(0, secNuc) + secNucRepl + rna.substring(secNuc + 1, nucToChange) + nucRepl
+                        + rna.substring(nucToChange + 1);
             }
+
+            // Choose to change a loop.
         } else {
-            // U and C are the best for loops
+
+            // Same method as above.
             nucToChange = nonbonds.get(r.nextInt(nonbonds.size()));
             curNuc = rna.substring(nucToChange, nucToChange + 1);
+
+            // Difference here is that the loop nucleotides are chosen with a randomness of 1/4.
             if (curNuc.equals("C")) {
                 int newNuc = r.nextInt(32);
                 if (newNuc < 8) { //21
@@ -457,15 +488,16 @@ public class RNA2DesignGUI extends JDialog {
 
     }
 
+    // Takes in the drawn structure and discerns a possible preliminary sequence.
     private void onPredict() {
 
+        // This is for RNA2DesignDemo. It's a differnt integration for sequences that are input, rather than made.
         if (rna.contains(">")) {
             rna = rna.split(">")[1];
             rnaStr = rna.split(">")[1];
 
             textArea.setText("Preliminary Sequence:\n" + rna);
             dotBracketText.setText("Drawn Fold:\n" + rnaStr);
-            //possStrs =
         } else {
 
             // Clear everything out for another Prediction of the sequence.
@@ -476,10 +508,12 @@ public class RNA2DesignGUI extends JDialog {
             possStrs = new ArrayList<>();
         }
 
+        // If the user hasn't drawn a structure yet, the call will end.
         if (RNAMouseManager.start == null || RNAMouseManager.stop == null) {
             // Do nothing
 
         } else {
+
             int AUGC;
             Random rand = new Random();
             GraphicGraph rnaGraph = RNAMouseManager.graph;
@@ -504,12 +538,15 @@ public class RNA2DesignGUI extends JDialog {
                     }*/
                     Edge curEdge = Nodal.next();
 
+                    //Visits one node, looks at its edges.
                     if (curEdge.toString().matches("e_\\d+") /*&& !nodeToNuc.containsKey(curNode)*/) {
                         if (!dontVisit.containsKey(curNode) && !visitedEdges.contains(curEdge.toString())) {
                             visitedEdges.add(curEdge.toString());
                             dontVisit.put(curNode, curNode.getId());
                             rnaStr += ".";
                             AUGC = rand.nextInt(32);
+
+                            // If the node is bonded to another, replace it with either a G or a C:
                             if (bondCounter(curNode)) {
                                 if (AUGC < 16) {
                                     rna += "G";
@@ -532,6 +569,7 @@ public class RNA2DesignGUI extends JDialog {
                                     nodeToNuc.put(curNode, "C");
                                 }*/
 
+                                // Else it's a loop and start the position off as an A.
                             } else {
                                 rna += "A";
                                 nodeToNuc.put(curNode, "A");
@@ -551,6 +589,8 @@ public class RNA2DesignGUI extends JDialog {
                             }
                         }
                     }
+
+                    // If the current edge being looked at is a bond:
                     if (curEdge.toString().matches("b_\\d+_\\d+")) {
                         String bond = curEdge.toString();
                         String[] bonds = bond.split("_");
@@ -568,6 +608,9 @@ public class RNA2DesignGUI extends JDialog {
                             rnaStr = rnaStr.substring(0, Integer.parseInt(curNode.getId()));
                             rnaStr += "(";
                         }
+
+                        // If the code comes across a nucleotide that has already been mentioned, change it to match
+                        // the nucleotide close to the 5'.
                         if (dontVisit.containsKey(pairedNode)) {
                             rnaStr += ")";
 
@@ -583,6 +626,8 @@ public class RNA2DesignGUI extends JDialog {
                             } else if (nodeToNuc.get(pairedNode).equals("G")) {
                                 rna += "C";
                             }
+
+                            // Else the node being visted is the earl nucleotide, then add it to the dontVisit list.
                         } else {
                             dontVisit.put(pairedNode, to);
                         }
@@ -590,10 +635,14 @@ public class RNA2DesignGUI extends JDialog {
                 }
             }
         }
+
+        // Output rna and structure to GUI.
         textArea.setText("Preliminary Sequence:\n" + rna);
         dotBracketText.setText("Drawn Fold:\n" + rnaStr);
     }
 
+
+    // True if it finds a bond that represents a nucleotide pair, return true.
     private Boolean bondCounter(GraphicNode n) {
         Iterator<Edge> edges = n.getEdgeIterator();
         boolean yes = false;
@@ -607,8 +656,8 @@ public class RNA2DesignGUI extends JDialog {
         return yes;
     }
 
+    // Ends program.
     private void onCancel() {
-        // add your code here if necessary
         dispose();
     }
 
