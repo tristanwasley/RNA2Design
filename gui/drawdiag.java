@@ -1,89 +1,114 @@
 package gui;
 
-import com.sun.jdi.event.ExceptionEvent;
+
 import org.graphstream.graph.Edge;
 import org.graphstream.graph.Element;
 import org.graphstream.graph.Graph;
 import org.graphstream.graph.Node;
-import org.graphstream.graph.implementations.MultiGraph;
-import org.graphstream.graph.implementations.SingleGraph;
-import org.graphstream.ui.geom.Point3;
 import org.graphstream.ui.graphicGraph.*;
-//import org.graphstream.ui.swingViewer.ViewPanel;
 import org.graphstream.ui.view.View;
 import org.graphstream.ui.view.Viewer;
-import org.graphstream.ui.view.util.DefaultMouseManager;
-import org.graphstream.ui.view.util.MouseManager;
-
 import javax.swing.*;
 import java.awt.*;
-import java.awt.dnd.MouseDragGestureRecognizer;
 import java.awt.event.*;
-import java.io.IOError;
 import java.math.BigInteger;
 import java.util.*;
-import java.util.List;
-
-import static java.awt.Event.MOUSE_DRAG;
 
 public class drawdiag extends JDialog {
 
-    private JPanel contentPane = new JPanel();
-    private JButton buttonOK = new JButton();
-    private JButton buttonCancel = new JButton();
-    private JTextArea textArea = new JTextArea();
-    private JButton drawing = new JButton();
-    private JButton predictStructureButton = new JButton();
-    private JScrollPane DNA = new JScrollPane();
-    private JPanel DrawArea = new JPanel();
-    private JTextArea legend = new JTextArea();
-    private JTextArea legend2 = new JTextArea();
-    private JButton RemoveAllNodes = new JButton();
-    private JButton buttonOptimize = new JButton();
+    private JPanel contentPane;
+    private JPanel DrawArea;
 
+    private JScrollPane DNA;
+    private JScrollPane currStrs;
+
+    // Where the RNA sequence will show up
+    private JTextArea textArea;
+    // Where the dot-bracket notation for RNA structure[s] will show up
+    private JTextArea dotBracketText;
+    private JTextArea legend;
+    private JTextArea legend2;
+
+    private JButton buttonCancel;
+    private JButton predictStructureButton;
+    private JButton RemoveAllNodes;
+    private JButton buttonOptimize;
+
+    // The graph that the user draws on, and its viewers.
     private Graph graph;
     private Viewer viewer;
     private View view;
 
     private int recurse;
-    private boolean boo;
     private String rna;
-    private String lastrna;
     private String rnaStr;
+    // Related to Nussinov Algorithm.
     private String _cache = "";
     private Edge b_edge;
-    private boolean direction = false;
-    ArrayList<String> _cacheStructs = new ArrayList<String>();
-    ArrayList<String> possStrs = new ArrayList<>();
-    ArrayList<String> lastList = new ArrayList<>();
+    private ArrayList<String> _cacheStructs = new ArrayList<String>();
+    // The current set of dot-bracket structures being assessed.
+    private ArrayList<String> possStrs = new ArrayList<>();
+
+    private void initiate() {
+        contentPane = new JPanel();
+        buttonCancel = new JButton();
+        textArea = new JTextArea();
+        predictStructureButton = new JButton();
+        DNA = new JScrollPane();
+        currStrs = new JScrollPane();
+        dotBracketText = new JTextArea();
+        DrawArea = new JPanel();
+        legend = new JTextArea();
+        legend2 = new JTextArea();
+
+        RemoveAllNodes = new JButton();
+        buttonOptimize = new JButton();
+
+
+        graph = new GraphicGraph("UsersGraph");
+        recurse = 0;
+        rna = "";
+        rnaStr = "";
+        _cache = "";
+        b_edge = null;
+        _cacheStructs = new ArrayList<>();
+        possStrs = new ArrayList<>();
+    }
 
 
     public drawdiag() {
-        rnaStr = "";
-        rna = "";
-        lastrna = "";
-        boo = false;
-        recurse = 0;
+
+        // Initiate all components.
+        initiate();
+
+        // Setting up the main panel.
         Dimension cP = new Dimension(800, 520);
         contentPane.setPreferredSize(cP);
         setContentPane(contentPane);
         setModal(true);
+        // Highlights the first button to be used.
         getRootPane().setDefaultButton(predictStructureButton);
 
+        // Set up the scroll panes that will contain the RNA text and structures
         DNA.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED);
-        //textArea.setPreferredSize(null);
+        currStrs.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED);
+        //currStrs.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_ALWAYS);
+
+        // Set up the text fields
+        dotBracketText.setEditable(false);
+        dotBracketText.setLineWrap(true);
+        //dotBracketText.setBorder(BorderFactorygetBorder().;
         textArea.setEditable(true);
         textArea.setLineWrap(true);
 
-        //textArea.setRows(2);
+        // Inlay the text Areas into Scroll panels.
         DNA.add(textArea);
         DNA.setViewportView(textArea);
-        //DNA.setVerticalScrollBar(DNAscroller);
+        currStrs.add(dotBracketText);
+        currStrs.setViewportView(dotBracketText);
 
 
-        graph = new GraphicGraph("check");
-
-
+        // Set up the view and viewer for the graph.
         viewer = new Viewer(graph, Viewer.ThreadingModel.GRAPH_IN_ANOTHER_THREAD);
         viewer.disableAutoLayout();
 
@@ -91,42 +116,47 @@ public class drawdiag extends JDialog {
         view.getCamera().setAutoFitView(false);
         view.getCamera().setGraphViewport(0, 0, 650, 350);
         view.getCamera().setViewCenter(0, 0, 0);
-        //view.getCamera().setViewPercent(1);
+
+        // Add custom mouse manager to allow for RNA drawing.
         view.setMouseManager(new RNAMouseManager());
 
+        // Set up the rest of the Drawing Area, add the view.
         DrawArea.setLayout(new BorderLayout());
         DrawArea.setBorder(BorderFactory.createLoweredBevelBorder());
         DrawArea.add((Component) view, BorderLayout.CENTER);
 
+        // Add instructions and other useful info for the user.
         legend.setEditable(false);
         legend.setBorder(BorderFactory.createEtchedBorder(1));
         legend.append("Delete Node:                                         Alt->LeftClick\n" +
                 "Add Edge Btwn Nodes:         Shift + LeftClick->Hover\n" +
                 "Mode Node:                                       LeftClick->Drag\n" +
                 "Add Node:                                                     LeftClick\n" +
-                "Continuous Node Drawing:     Control->Move Cursor");
+                "Continuous Node Drawing:     Control->Move Cursor\n" +
+                "Exit Program:                                                    Escape");
 
         legend2.setEditable(false);
         legend2.setBorder(BorderFactory.createLoweredBevelBorder());
-        legend2.append("Start Node:                       GREEN\n" +
-                "End Node:                         RED\n" +
-                "RNA Backbone:                 BLUE\n" +
-                "Nucleotide pair bond:       PINK\n\n" +
-                "   MAKE SURE START AND END NODES ARE CORRECT");
+        legend2.append("5' Node:                              GREEN\n" +
+                "3' Node:                               RED\n" +
+                "RNA Backbone:                    BLUE\n" +
+                "Base Pair Bond:                    PINK\n\n" +
+                "  MAKE SURE 5' AND 3' NODES ARE CORRECT");
 
 
-        //buttonOK.setText("OK");
-        buttonCancel.setText("Cancel");
-        //drawing.setText("Align");
+        // Set the text that each button displays.
         predictStructureButton.setText("Predict");
         buttonOptimize.setText("Optimize");
         RemoveAllNodes.setText("Clear Nodes");
 
 
+        // Get rid of any prior layout of the GUI.
         contentPane.setLayout(null);
 
+
+        // Add all of the premade panes/panels to the main contentPane, in specified locations.
         contentPane.add(DrawArea);
-        DrawArea.setBounds(5, 5, 650, 350); // if set to 0, first node will be placed correctly.
+        DrawArea.setBounds(5, 5, 650, 350); // if set to 0, first node will be placed correctly...Not changed for aesthetic reasons.
 
         contentPane.add(DNA);
         DNA.setBounds(5, 360, 650, 50);
@@ -135,74 +165,52 @@ public class drawdiag extends JDialog {
         legend.setBounds(5, 415, 350, 100);
 
         contentPane.add(legend2);
-        legend2.setBounds(360, 415, 350, 100);
+        legend2.setBounds(360, 415, 295, 100);
 
-        //contentPane.add(buttonOK);
-        //buttonOK.setBounds(655, 5, 145, 30);
 
-        contentPane.add(buttonCancel);
-
-        //contentPane.add(drawing);
-        //drawing.setBounds(655, 40, 145, 30);
-
+        // Add all the buttons too.
         contentPane.add(predictStructureButton);
-        predictStructureButton.setBounds(655, 75, 145, 30);
+        predictStructureButton.setBounds(655, 5, 145, 30);
 
         contentPane.add(RemoveAllNodes);
-        RemoveAllNodes.setBounds(655, 110, 145, 30);
+        RemoveAllNodes.setBounds(655, 40, 145, 30);
 
         contentPane.add(buttonOptimize);
-        buttonOptimize.setBounds(655, 145, 145, 30);
+        buttonOptimize.setBounds(655, 75, 145, 30);
+
+        contentPane.add(currStrs);
+        currStrs.setBounds(660, 110, 135, 405);
 
 
-        contentPane.registerKeyboardAction(new ActionListener() {
-            public void actionPerformed(ActionEvent e) {
-                onDraw();
-            }
-        }, KeyStroke.getKeyStroke(KeyEvent.VK_D, 0), JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT);
-
-        buttonOK.addActionListener(new ActionListener() {
-            public void actionPerformed(ActionEvent e) {
-                onOK();
-            }
-        });
-
+        // On clicking "Predict", calls function that determines dot-bracket notation
         predictStructureButton.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent e) {
                 onPredict();
             }
         });
 
+        // On clicking "Optimize", recursively finds the most likely RNA sequence to fold into the structure desired.
         buttonOptimize.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent e) {
                 if (!rnaStr.equals("")) {
-                    onOptimize();
+                    onOptimize2();
                 }
             }
         });
 
-        buttonCancel.addActionListener(new ActionListener() {
-            public void actionPerformed(ActionEvent e) {
-                onCancel();
-            }
-        });
-
-        drawing.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                textArea.append("structure");
-            }
-        });
-
+        // On clicking "Clear Nodes", clears all changing text boxes and graph.
         RemoveAllNodes.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent e) {
                 graph.clear();
                 textArea.setText("");
+                dotBracketText.setText("");
                 recurse = 0;
+                rna = "";
+                possStrs = new ArrayList<>();
             }
         });
 
-        // call onCancel() when cross is clicked
+        // Call onCancel() when cross is clicked.
         setDefaultCloseOperation(DO_NOTHING_ON_CLOSE);
         addWindowListener(new WindowAdapter() {
             public void windowClosing(WindowEvent e) {
@@ -219,151 +227,122 @@ public class drawdiag extends JDialog {
     }
 
 
-    private void onDraw() {
-    }
+    // Refined Optimization method based on one of my prior, messier recursion algorithm, located in onOptimize2.java
+    private void onOptimize2() {
 
-
-    private void onOptimize2(String str) {
-        ArrayList<String> First = new ArrayList<>();
-        ArrayList<String> Second = new ArrayList<>();
+        // Get the current RNA structures for the sequence.
         cleanUp();
-        First = possStrs;
+        ArrayList<String> First = new ArrayList<>();
+        for (String s : possStrs) {
+            First.add(s);
+        }
+        String previousRNA = "" + rna;
+
+        if (!First.contains(rnaStr)) {
+            onPredict();
+            onOptimize2();
+        }
+
+        // Point "mutate" the sequence, get the resultant potential RNA structures.
         mutate();
         cleanUp();
-        Second = possStrs;
-        if (First.size() < Second.size() || !Second.contains(rnaStr)) {
-            rna = "";
+        ArrayList<String> Second = new ArrayList<>();
+        for (String s : possStrs) {
+            Second.add(s);
+        }
 
 
+        // If the number of total possible structures has gone down, and possStrs still contains the drawn structure:
+        if (First.size() >= Second.size() && Second.contains(rnaStr)) {
 
-        } else if (Second.size() == 1) {
+            // 1st condition for ending Optimization.
+            // If the drawn structure is the only possible structure left:
+            if (Second.size() == 1) {
 
-        } else if (First.size() == Second.size()) {
-            /*if (recurse > 5000) {
+                // Append relevant info to relevant text boxes.
+                dotBracketText.setText("");
+                dotBracketText.append(possStrs.get(0));
+                textArea.setText("");
+                textArea.append("Bing! Your optimization is done:\n");
+                textArea.append(rna);
 
+                // 2nd condition for ending Optimization.
+                // Check for if, at certain point one must come to the conclusion that the drawn RNA structure
+                // is most likely not plausible, or there is not enough variation to refine the structures any further.
+            } else if (Second.size() <= 5 && recurse >= 500) {
+
+                // Append all possible structures to the dotBracketText box.
+                dotBracketText.setText("");
+                for (String finStruct : possStrs) {
+                    dotBracketText.append(finStruct + "\n");
+                }
+
+                // Append the current RNA sequence to the textArea(RNA seq.) box.
+                textArea.setText("");
+                textArea.append("Bing! Your optimization is done:\n");
+                textArea.append(rna);
+
+                // If it hasn't recursed enough to make the previous decision:
+            } else if (recurse < 500) {
+
+                // Call onOptimize2 on the new RNA sequence because it is just as good or better than the previous.
+                recurse += 1;
+                onOptimize2();
+
+            } else if (recurse >= 500) {
+
+                onPredict();
+                recurse = 0;
+
+                onOptimize2();
+
+                // Append all possible structures to the dotBracketText box.
+                /*dotBracketText.setText("");
+                for (String finStruct : possStrs) {
+                    dotBracketText.append(finStruct + "\n");
+                }
+
+                // Append the current RNA sequence to the textArea(RNA seq.) box.
+                textArea.setText("");
+                textArea.append(rna);*/
+            }
+
+            // If the new RNA sequence has more possible secondary structures,
+            // or the drawn structure is no longer a possible structure:
+        } else {
+
+            // For sticky situations.
+            if (recurse >= 500) {
+                onPredict();
+                recurse = 0;
+                onOptimize2();
             } else {
 
-            }*/
-        }
-    }
-
-    private void onOptimize() {
-        cleanUp(); // get structures from sequence, then clean up the ArrayList to readable format [rna, possStrs]
-
-        if (!possStrs.contains(rnaStr)) {
-            if (direction) {
+                // Return global rna back to previous state.
                 rna = "";
-                rna += lastrna;
+                rna += previousRNA;
+
+                // Return global possStrs to previous state.
                 possStrs = new ArrayList<>();
-                for (String str : lastList) {
-                    possStrs.add(str);
-                }
-            } else {
-                if (recurse > 0) {
-                    lastrna = "";
-                    lastrna += rna;
-                    lastList = new ArrayList<>();
-                    for (String str : possStrs) {
-                        lastList.add(str);
-                    }
-                } else {
-                    lastrna += rna;  //correct
-                    for (String str : possStrs) {
-                        lastList.add(str);
-                    }
-                }
-            }
-            recurse += 1;
-            //drawn structure was not one of the generated structures.
-            mutate(); // mutate the sequence
-            onOptimize(); // call Optimize again
-            // recurse
-        }
-        if (possStrs.contains(rnaStr)){
-            if (possStrs.size() < 4) {
-                textArea.append("\n");
-                for (String str : possStrs) {
-                    textArea.append("___" + str);
-                }
-                // end
-
-            } else if (possStrs.size() == lastList.size()) {
-                if (recurse > 5000) {
-                    recurse = 0;
-                    direction = false;
-                    onPredict();
-                    onOptimize();
-                    // recurse
-                } else {
-                    System.out.print(possStrs);
-                    if (recurse > 0 && direction) {
-                        lastrna = "";
-                        lastrna += rna;
-                        lastList = new ArrayList<>();
-                        for (String str : possStrs) {
-                            lastList.add(str);
-                        }
-                    } else {
-                        lastrna += rna;
-                        for (String str : possStrs) {
-                            lastList.add(str);
-                        }
-                    }
-                    recurse += 1;
-                    mutate();
-                    direction = true;
-                    onOptimize();
-                    // recurse
+                for (String s : First) {
+                    possStrs.add(s);
                 }
 
-            } else {
-
-                if (lastList.size() > possStrs.size() || !direction) { // if it got better
-                    if (recurse > 0) {
-                        lastrna = "";
-                        lastrna += rna;
-                        lastList = new ArrayList<>();
-                        for (String str : possStrs) {
-                            lastList.add(str);
-                        }
-                    } else {
-                        lastrna += rna;
-                        for (String str : possStrs) {
-                            lastList.add(str);
-                        }
-                    }
-                    recurse += 1;
-                    mutate();
-                    direction = true;
-                    onOptimize();
-                    // recurse
-                } else { // if it got worse
-                    if (recurse > 0 && direction) {
-                        rna = "";
-                        rna += lastrna;
-                    } else {
-                        lastrna += rna;  // correct
-                        for (String str : possStrs) {  // correct
-                            lastList.add(str);
-                        }
-                    }
-                    recurse += 1;
-                    mutate();
-                    direction = true;
-                    onOptimize();
-                    // recurse
-                }
+                // Retry.
+                recurse += 1;
+                onOptimize2();
             }
         }
-        if (possStrs.size() > 4) {
-            onOptimize();
-        }
-        textArea.append("\n" + rna);
     }
 
+
+
+    // get possStrs from sequence, then clean up the ArrayList to readable format Edited:[rna, possStrs]
+    // allows for comparison between my derived structure, and the generated ones.
     private void cleanUp() {
         ArrayList<String> initStrs = findPossibleStructures(rna);
         possStrs = new ArrayList<>();
+        dotBracketText.setText("");
         for (String str : initStrs) {
             while (str.contains("()")) {
                 str = str.replace("()", "..");
@@ -421,43 +400,51 @@ public class drawdiag extends JDialog {
             nucToChange = nonbonds.get(r.nextInt(nonbonds.size()));
             curNuc = rna.substring(nucToChange, nucToChange + 1);
             if (curNuc.equals("C")) {
-                int newNuc = r.nextInt(27);
-                if (newNuc < 21) {
+                int newNuc = r.nextInt(32);
+                if (newNuc < 8) { //21
                     nucRepl = "U";
-                } else if (newNuc < 24) {
+                } else if (newNuc < 16) { //24
                     nucRepl = "G";
-                } else if (newNuc < 27) {
+                } else if (newNuc < 24) { //27
                     nucRepl = "A";
+                } else if (newNuc < 32) {
+                    nucRepl = "C";
                 }
 
             } else if (curNuc.equals("U")) {
-                int newNuc = r.nextInt(27);
-                if (newNuc < 21) {
+                int newNuc = r.nextInt(32);
+                if (newNuc < 8) { //21
                     nucRepl = "C";
-                } else if (newNuc < 24) {
+                } else if (newNuc < 16) { //24
                     nucRepl = "G";
-                } else if (newNuc < 27) {
+                } else if (newNuc < 24) { //27
                     nucRepl = "A";
+                } else if (newNuc < 32) {
+                    nucRepl = "U";
                 }
 
             } else if (curNuc.equals("G")) {
                 int newNuc = r.nextInt(27);
-                if (newNuc < 11) {
+                if (newNuc < 8) { //11
                     nucRepl = "U";
-                } else if (newNuc < 22) {
+                } else if (newNuc < 16) { //22
                     nucRepl = "C";
-                } else if (newNuc < 27) {
+                } else if (newNuc < 24) { //27
                     nucRepl = "A";
+                } else if (newNuc < 32) {
+                    nucRepl = "G";
                 }
 
             } else if (curNuc.equals("A")) {
-                int newNuc = r.nextInt(27);
-                if (newNuc < 11) {
+                int newNuc = r.nextInt(27); //
+                if (newNuc < 8) { //11
                     nucRepl = "U";
-                } else if (newNuc < 22) {
+                } else if (newNuc < 16) { //22
                     nucRepl = "C";
-                } else if (newNuc < 27) {
+                } else if (newNuc < 24) { //27
                     nucRepl = "G";
+                } else if (newNuc < 32) {
+                    nucRepl = "A";
                 }
             }
             rna = rna.substring(0, nucToChange) + nucRepl + rna.substring(nucToChange + 1);
@@ -466,29 +453,31 @@ public class drawdiag extends JDialog {
     }
 
     private void onPredict() {
-        rna = "";
-        rnaStr = "";
-        Random rand = new Random();
+
+        // Clear everything out for another Prediction of the sequence.
+        textArea.setText("");
+        dotBracketText.setText("");
+        recurse = 0;
+        rna  = "";
+        possStrs = new ArrayList<>();
+
+        int AUGC;
+
         if (RNAMouseManager.start == null || RNAMouseManager.stop == null) {
+            // Do nothing
 
         } else {
-            //Set<GraphicNode> allnodes = new HashSet<>();
+            rna = "";
+            rnaStr = "";
+            recurse = 0;
+            Random rand = new Random();
             GraphicGraph rnaGraph = RNAMouseManager.graph;
-            //allnodes.addAll(rnaGraph.getNodeSet());
-            //rnaGraph.
-            Element stt = RNAMouseManager.start;
-            Element stp = RNAMouseManager.stop;
-            Node stNode = null;
             int rnaLen = rnaGraph.getNodeCount();
             Map<GraphicNode, String> nodeToNuc = new HashMap<>();
             Map<GraphicNode, String> dontVisit = new HashMap<>();
             ArrayList<String> visitedEdges = new ArrayList<>();
-            int AUGC = 0;
 
-            //Gets iterator over all nodes.
-            //Set<GraphicNode> nodes = rnaGraph.getNodeSet();
 
-            //GraphicNode curNode = rnaGraph.getNode(stt.getId());
             //While there are nodes in the graph.
             for (int bigI = 0; bigI < rnaLen; bigI++) {
                 GraphicNode curNode = rnaGraph.getNode(bigI + "");
@@ -505,14 +494,20 @@ public class drawdiag extends JDialog {
                     Edge curEdge = Nodal.next();
 
                     if (curEdge.toString().matches("e_\\d+") /*&& !nodeToNuc.containsKey(curNode)*/) {
-                        //String prevNode = (Integer.parseInt(curEdge.toString().split("_")[1]) - 1) + "";
                         if (!dontVisit.containsKey(curNode) && !visitedEdges.contains(curEdge.toString())) {
                             visitedEdges.add(curEdge.toString());
                             dontVisit.put(curNode, curNode.getId());
                             rnaStr += ".";
                             AUGC = rand.nextInt(32);
                             if (bondCounter(curNode)) {
-                                if (AUGC < 2) {
+                                if (AUGC < 16) {
+                                    rna += "G";
+                                    nodeToNuc.put(curNode, "G");
+                                } else {
+                                    rna += "C";
+                                    nodeToNuc.put(curNode, "C");
+                                }
+                                /*if (AUGC < 2) {
                                     rna += "A";
                                     nodeToNuc.put(curNode, "A");
                                 } else if (AUGC < 3) {
@@ -524,10 +519,12 @@ public class drawdiag extends JDialog {
                                 } else if (AUGC < 32) {
                                     rna += "C";
                                     nodeToNuc.put(curNode, "C");
-                                }
+                                }*/
 
                             } else {
-                                if (AUGC < 13) {
+                                rna += "A";
+                                nodeToNuc.put(curNode, "A");
+                                /*if (AUGC < 13) {
                                     rna += "A";
                                     nodeToNuc.put(curNode, "A");
                                 } else if (AUGC < 26) {
@@ -539,7 +536,7 @@ public class drawdiag extends JDialog {
                                 } else if (AUGC < 32) {
                                     rna += "C";
                                     nodeToNuc.put(curNode, "C");
-                                }
+                                }*/
                             }
                         }
                     }
@@ -577,13 +574,13 @@ public class drawdiag extends JDialog {
                             }
                         } else {
                             dontVisit.put(pairedNode, to);
-                            //dontVisit.put(rnaGraph.getNode(from), from);
                         }
                     }
                 }
             }
         }
-        textArea.append(rna + "\n" + rnaStr);
+        textArea.append(rna);
+        dotBracketText.append(rnaStr);
     }
 
     private Boolean bondCounter(GraphicNode n) {
@@ -597,13 +594,6 @@ public class drawdiag extends JDialog {
             }
         }
         return yes;
-    }
-
-    private void onOK() {
-        // add your code here
-        textArea.append("Hello World");
-        //System.out.println("Hello World");
-        //dispose();
     }
 
     private void onCancel() {
@@ -777,15 +767,15 @@ public class drawdiag extends JDialog {
 
     private boolean canBasePair(char a, char b)
     {
-        return canBasePairBasic(a,b);
-        //return canBasePairNussinov(a,b);
+        //return canBasePairBasic(a,b);
+        return canBasePairNussinov(a,b);
         //return canBasePairINRIA(a,b);
     }
 
     private double basePairScore(char a, char b)
     {
-        return basePairScoreBasic(a,b);
-        //return basePairScoreNussinov(a,b);
+        //return basePairScoreBasic(a,b);
+        return basePairScoreNussinov(a,b);
         //return basePairScoreINRIA(a,b);
     }
 
@@ -904,6 +894,7 @@ public class drawdiag extends JDialog {
                                 for (String s2:backtrack(tab, seq, k+1,j))
                                 {
                                     resultB.add("("+s1+")"+s2);
+                                    //this may be the location to add a score keeper for each
                                 }
                             }
                         }
@@ -972,6 +963,7 @@ public class drawdiag extends JDialog {
             _cacheStructs = backtrack(mfe,seq);
             _cache = seq;
         }
+        //BigInteger unknown = count(seq);
         return _cacheStructs;
     }
 }
