@@ -31,14 +31,10 @@ import static java.awt.event.MouseEvent.BUTTON3;
 public class RNAMouseManager implements MouseManager
 {
     private int nodel = 0;
-    Double[] pos;
     double xinit;
     double yinit;
-    Point3 GU;
-    //private Map<Integer, Node> allNodes = new TreeMap<>();
     public static Element start = null;
     public static Element stop = null;
-    // Attribute
 
     /**
      * The view this manager operates upon.
@@ -69,6 +65,7 @@ public class RNAMouseManager implements MouseManager
         view.addMouseMotionListener(this);
     }
 
+    // Leftover from DefaultMouseManager
     public EnumSet<InteractiveElement> getManagedTypes() {
         return types;
     }
@@ -78,54 +75,18 @@ public class RNAMouseManager implements MouseManager
         view.removeMouseMotionListener(this);
     }
 
-    /*public Element getStart() {
-        return start;
-    }
-
-    public Element getStop() {
-        return stop;
-    }*/
-
-    // Command
 
     protected void mouseButtonPress(MouseEvent event) {
         view.requestFocus();
 
-        // Unselect all.
-
-        //if (event.isShiftDown() && nodel > 0) {
-            /*if (types.contains(InteractiveElement.NODE)) {
-                for (Node node : graph) {
-
-                    if (node.hasAttribute("ui.selected")) {
-                        //node.removeAttribute("ui.selected");
-                        graph.removeEdge(nodel - 1 + "", nodel + "");
-                        graph.removeNode(nodel + "");
-                        nodel -= 1;
-                    }
-                }
-            }
-
-            if (types.contains(InteractiveElement.SPRITE)) {
-                for (GraphicSprite sprite : graph.spriteSet()) {
-                    if (sprite.hasAttribute("ui.selected"))
-                        sprite.removeAttribute("ui.selected");
-                }
-            }
-
-            if (types.contains(InteractiveElement.EDGE)) {
-                for (Edge edge : graph.getEdgeSet()) {
-                    if (edge.hasAttribute("ui.selected"))
-                        edge.removeAttribute("ui.selected");
-                }
-            }*/
-        //} else {
+        // Givens
         if (graph.getNodeSet().size() < 1) {
-            //allNodes = new TreeMap<>();
             nodel = 0;
             start = null;
             stop = null;
         }
+
+        // Get the point of the click, convert it to a point on the graph, then add node plus attributes
         Point pos = event.getPoint();
         xinit = pos.x;
         yinit = pos.y;
@@ -135,25 +96,33 @@ public class RNAMouseManager implements MouseManager
         node.addAttribute("xy", GU.x, GU.y);
         node.addAttribute("layout.frozen");
         if (nodel > 0) {
+
+            // Add edge between previous node and just placed one.
             graph.addEdge("e_" + nodel, "" + (nodel - 1), "" + nodel).addAttribute("ui.style", "fill-color: blue;");
+
+            // Maintenance of 3' red stop node.
             node.addAttribute("ui.style", "fill-color: red;");
             stop = node;
             if (nodel > 1) {
+
+                // Turn previous node black
                 if (graph.getNode("" + (nodel - 1)).hasAttribute("ui.style")) {
                     graph.getNode("" + (nodel - 1)).addAttribute("ui.style", "fill-color: black;");
                 }
             }
 
-            //graph.addAttribute("layout.frozen");
         } else if (nodel == 0) {
+
+            // 5' node maintenance
             node.addAttribute("ui.style", "fill-color: green;");
             start = node;
         }
-        //allNodes.put(nodel, node);
+
+        // Maintenance of what node the system is on.
         nodel += 1;
-        //}
     }
 
+    // Part of DefaultMouseManager I believe.
     protected void mouseButtonRelease(MouseEvent event,
                                       Iterable<GraphicElement> elementsInArea) {
         for (GraphicElement element : elementsInArea) {
@@ -166,24 +135,10 @@ public class RNAMouseManager implements MouseManager
                                              MouseEvent event) {
         view.freezeElement(element, true);
         if (event.isControlDown()) {
-            /*if (event.getButton() == 1) {
-                if (start == null) {
-                    element.addAttribute("ui.style", "fill-color: green;");
-                    start = element;
-                } else if (start == element) {
-                    element.addAttribute("ui.style", "fill-color: black;");
-                    start = null;
-                }
-            } else if (event.getButton() == 3) {
-                if (stop == null) {
-                    element.addAttribute("ui.style", "fill-color: red;");
-                    stop = element;
-                } else if (stop == element) {
-                    element.addAttribute("ui.style", "fill-color: black;");
-                    stop = null;
-                }
-            }*/
+            // nothing yet
         } else {
+
+            // deletes the edges of a node; used to free up nodes however it messed up the node numbering too much.
             /*if (event.getButton() == 3) {
                 element.addAttribute("ui.selected");
                 String ele = element.toString();
@@ -200,10 +155,13 @@ public class RNAMouseManager implements MouseManager
         }*/
     }
 
+
+    // Describes the movement of a node.
     protected void elementMoving(GraphicElement element, MouseEvent event) {
         view.moveElementAtPx(element, event.getX(), event.getY());
     }
 
+    // Place node wherever you let go of it.
     protected void mouseButtonReleaseOffElement(GraphicElement element,
                                                 MouseEvent event) {
         view.freezeElement(element, false);
@@ -213,8 +171,7 @@ public class RNAMouseManager implements MouseManager
         }
     }
 
-    // Mouse Listener
-
+    // The current element.
     protected GraphicElement curElement;
 
     protected float x1, y1;
@@ -223,34 +180,47 @@ public class RNAMouseManager implements MouseManager
         // NOP
     }
 
+    //  Specifies mouse press events.
     public void mousePressed(MouseEvent event) {
         if (graph.getNodeSet().size() < 1) {
-            //allNodes = new TreeMap<>();
             nodel = 0;
             start = null;
             stop = null;
         }
+
+        // Get the current clicked item.
         curElement = view.findNodeOrSpriteAt(event.getX(), event.getY());
 
 
         if (curElement != null) {
+
             mouseButtonPressOnElement(curElement, event);
+
+            // If Alt is pressed down while clicking a node, delete it and revert system back a node from
+            // previous node position.
             if (event.isAltDown()) {
+
                 graph.removeNode(curElement.toString());
                 int curEle = Integer.parseInt(curElement.toString());
+
+                // Handles if the node deleted was in the middle of the sequence.
                 for (int i = 0; i < nodel - curEle - 1; i++) {
                     Node movN = graph.getNode((i + curEle + 1) + "");
                     graph.removeNode((i + curEle + 1) + "");
                     Node newN = graph.addNode((i + curEle) + "");
                     newN.addAttribute("xy", movN.getAttribute("xy"));
                     newN.addAttribute("layout.frozen");
+
                     if (curEle + i + 2 == nodel) {
                         newN.addAttribute("ui.style", "fill-color: red;");
                         stop = newN;
                     }
+
+                    // "Edge" case ... ha ha
                     if (curEle + i != 0) {
                         graph.addEdge("e_" + (curEle + i), "" + (curEle - 1 + i), "" + (curEle + i)).addAttribute("ui.style", "fill-color: blue;");
                     } else {
+                        // nothing
                     }
                 }
                 if (curEle == nodel - 1) {
@@ -258,9 +228,12 @@ public class RNAMouseManager implements MouseManager
                     graph.removeNode(curEle + "");
                     stop = graph.getNode((curEle - 1) + "");
                 }
-                //allNodes.remove(nodel);
+
+                // Because we just lost a node.
                 nodel -= 1;
             }
+
+            // Specifies native drag option which has soemthing to do with dragging to highlight an area.
         } else {
             x1 = event.getX();
             y1 = event.getY();
@@ -270,6 +243,7 @@ public class RNAMouseManager implements MouseManager
         }
     }
 
+    // Functionality for making bonds
     public void mouseDragged(MouseEvent event) {
         if (curElement != null) {
             if (event.isShiftDown()) {
@@ -277,9 +251,13 @@ public class RNAMouseManager implements MouseManager
                     for (GraphicElement nerd : view.allNodesOrSpritesIn(event.getX() - 5, event.getY() - 5, event.getX() + 5, event.getY() + 5)) {
                         if (nerd != curElement) {
                             //work here    blue backbone, pink bonds
+
+                            // Action node is the node being dragged; Passive node is the node being dragged over.
                             GraphicNode actionNode = graph.getNode(curElement.getId());
                             GraphicNode passiveNode = graph.getNode(nerd.getId());
 
+                            // abbs = Action node Back BoneS (edges)
+                            // abds = Action node BonDS (edges)
                             int abbs = 0;
                             int abds = 0;
                             if (actionNode.getDegree() > 0) {
@@ -292,6 +270,8 @@ public class RNAMouseManager implements MouseManager
                                 }
                             }
 
+                            // pbbs = Passive node Back BoneS (edges)
+                            // pbds = Passive node BonDS (edges)
                             int pbbs = 0;
                             int pbds = 0;
                             boolean boo = false;
@@ -305,6 +285,8 @@ public class RNAMouseManager implements MouseManager
                                 }
                             }
 
+                            // Related to the commented out code. Adding edge between singular node and the structure
+                            // unimplemented right now.
                             int curEle = 0;
                             if (actionNode.toString().equals("0")) {
                                 curEle = Integer.parseInt(passiveNode.toString());
@@ -314,6 +296,7 @@ public class RNAMouseManager implements MouseManager
                                 boo = true;
                             }
 
+                            // Rules for checking if its legal to make a bond between two nodes.
                             if (abbs + abds == 3 | pbbs + pbds == 3) {
                                 // do nothing
 
@@ -321,6 +304,9 @@ public class RNAMouseManager implements MouseManager
                                 if (abbs > 0 && pbbs > 0) {
                                     graph.addEdge("b_" + actionNode.toString() + "_" + passiveNode.toString(), actionNode.getId(), passiveNode.getId())
                                             .addAttribute("ui.style", "fill-color: pink;");
+
+                                    // More code for attaching a single node to the rest of the rna Structure. Resolved
+                                    // this by removing ability to make a single node. May add it back in later versions.
                                 } /*else if (boo) {
                                     for (int i = 0; i < nodel - 1; i++) {
                                         Node movN = graph.getNode(i + "");
@@ -388,11 +374,13 @@ public class RNAMouseManager implements MouseManager
                 }
             }
             elementMoving(curElement, event);
+
         } else {
             view.selectionGrowsAt(event.getX(), event.getY());
         }
     }
 
+    // What happens when a mouse button is released. Included from DefaultMouseManager.
     public void mouseReleased(MouseEvent event) {
         if (curElement != null) {
             mouseButtonReleaseOffElement(curElement, event);
@@ -426,13 +414,16 @@ public class RNAMouseManager implements MouseManager
         // NOP
     }
 
+    // Simply looks at ambient mouse movement in the graph.
     public void mouseMoved(MouseEvent event) {
         if (graph.getNodeSet().size() < 1) {
-            //allNodes = new TreeMap<>();
             nodel = 0;
             start = null;
             stop = null;
         }
+
+        // Ability to hold down Control and draw structures with fewer clicks
+        // A bit buggy right now, not working well, best to avoid for now.
         if (event.isControlDown()) {
             if (nodel == 0) {
                 Point pos = event.getPoint();
@@ -447,18 +438,23 @@ public class RNAMouseManager implements MouseManager
                 if (curElement != null) {
                     mouseButtonPressOnElement(curElement, event);
                 }*/
-                //allNodes.put(nodel, node);
                 nodel += 1;
 
             } else {
-                try
+
+                // Tries pausing the algorithm to generate nodes at equal time points, but it has unexpected behavior
+                // at the moment.
+
+                /*try
                 {
                     Thread.sleep(100);
                 }
                 catch(InterruptedException ex)
                 {
                     Thread.currentThread().interrupt();
-                }
+                }*/
+
+                //event.getPoint().setLocation();
                 double evx = event.getX();
                 double evy = event.getY();
                 Point3 eGU = view.getCamera().transformPxToGu(evx, evy);
@@ -468,7 +464,6 @@ public class RNAMouseManager implements MouseManager
                     node.addAttribute("layout.frozen");
                     if (nodel > 0) {
                         graph.addEdge("e" + nodel, "" + (nodel - 1), "" + nodel).addAttribute("ui.style", "fill-color: blue;");
-                        //graph.addAttribute("layout.frozen");
                         node.addAttribute("ui.style", "fill-color: red;");
                         stop = node;
                         if (nodel > 1) {
@@ -477,7 +472,8 @@ public class RNAMouseManager implements MouseManager
                             }
                         }
                     }
-                    //allNodes.put(nodel, node);
+
+                    // logs previous position to determine when to drop another node.
                     nodel += 1;
                     xinit = eGU.x;
                     yinit = eGU.y;
