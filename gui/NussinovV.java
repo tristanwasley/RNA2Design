@@ -5,6 +5,7 @@ import java.util.ArrayList;
 
 /**
  * Created by tristanwasley on 12/13/17.
+ * Mostly all of this code comes from a program called VARNA.
  */
 public class NussinovV {
 
