@@ -4,7 +4,7 @@ User interface for finding the most optimally folding RNA sequence, given a draw
 
 Background:
 
-    This project stems from the current inablity to simply read DNA sequences and be able to understand what
+    This project stems from the current inability to simply read DNA sequences and be able to understand what
     they do. There is a similar problem with correlating structure to sequence. The idea is to create a 
     platform with-in which Bioengineers can design biologically-sound RNA secondary structures, knowing only
     what shape or functionality they need.
